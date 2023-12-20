@@ -69,3 +69,11 @@ local OrbsToggle = AddToggle(Hentai, {
   end
 
 })
+AddButton(Main, {
+  Name = "Free Gamepasses",
+  Callback = function()
+    local gmppath = require(game:GetService("ReplicatedStorage").Framework.Modules.Client["5 | Gamepasses"])
+gmppath.Owns = function() return true end
+--Script activates Hoverboard and Teleport and Egg Skip gamepass
+  end
+})
