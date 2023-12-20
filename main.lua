@@ -27,20 +27,16 @@ local AutofarmToggle = AddToggle(Hentai, {
   Name = "Auto Farm Coins",
   Default = false,
   Callback = function(Value)
-    while getgenv().AutoFarmCoins do
-  task.wait()
-  
-  local Coins = GetCoins() -- Assuming GetCoins() is a function returning a table of coins
-  
-  if #Coins > 0 then
-    local Coin = Coins[math.random(1, #Coins)]
-    
-    if Coin then
-      game:GetService("ReplicatedStorage").Breakables_PlayerDealDamage:FireServer(Coin.Name)
-    end
+while getgenv().AutoFarmCoins do task.wait() 
+local Coin = GetCoins()[math.random(1, #GetCoins())]
+
+if Coin then
+
+Network.Breakables_PlayerDealDamage:FireServer(Coin.Name)
   end
-      end
-    end
+ end
+end
+
 })
 --auto collect Lootbags
 local LootbagsToggle = AddToggle(Hentai, {
