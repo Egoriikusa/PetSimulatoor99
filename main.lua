@@ -51,66 +51,104 @@ local TeleportToggle = PetSimSection:AddToggle({
     end
 })
 
-local TeleportDropdown = PetSimSection:AddDropdown({
-    Name = "Teleport to Map",
-    Default = "1 | Spawn",
-    Options = {
-        "1 | Spawn",
-        "2 | Colorful Forest",
-        "3 | Castle",
-        "4 | Green Forest",
-        "5 | Autumn",
-        "6 | Cherry Blossom",
-        "7 | Farm",
-        "8 | Backyard",
-        "9 | Misty Falls",
-        "10 | Mine",
-        "11 | Crystal Caverns",
-        "12 | Dead Forest",
-        "13 | Dark Forest",
-        "14 | Mushroom Field",
-        "15 | Enchanted Forest",
-        "16 | Crimson Forest",
-        "17 | Jungle",
-        "18 | Jungle Temple",
-        "19 | Oasis",
-        "20 | Beach",
-        "21 | Coral Reef",
-        "22 | Shipwreck",
-        "23 | Atlantis",
-        "24 | Palm Beach",
-        "25 | Tiki",
-        "26 | Pirate Cove",
-        "27 | Pirate Tavern",
-        "28 | Shanty Town",
-        "29 | Desert Village",
-        "30 | Fossil Digsite",
-        "31 | Desert Pyramids",
-        "32 | Red Desert",
-        "33 | Wild West",
-        "34 | Grand Canyons",
-        "35 | Safari",
-        "36 | Mountains",
-        "37 | Snow Village",
-        "38 | Icy Peaks",
-        "39 | Ice Rink",
-        "40 | Ski Town",
-        "41 | Hot Springs",
-        "42 | Fire and Ice",
-        "43 | Volcano",
-        "44 | Obsidian Cave",
-        "45 | Lava Forest",
-        "46 | Underworld",
-        "47 | Underworld Bridge",
-        "48 | Underworld Castle",
-        "49 | Metal Dojo",
-        "50 | Fire Dojo"
-    },
-    Callback = function(Value)
-        SelectedMapName = Value:split(" | ")[1]
+local FishToggle = PetSimSection:AddToggle({
+        Name = "Auto Fish",
+        Default = false,
+        Callback = function(value)
+
+local Chimpanzees = game:GetService("Players")
+local Jungle = game:GetService("Workspace")
+local TreeClimbingService = game:GetService("RunService")
+local BananaStorage = game:GetService("ReplicatedStorage")
+
+-- monkey type shit
+
+local InGame = false
+local Monkey = Chimpanzees.LocalPlayer
+local MonkeyHabitat = Jungle:WaitForChild("__THINGS")
+local ActiveMonkeys = MonkeyHabitat:WaitForChild("__INSTANCE_CONTAINER"):WaitForChild("Active")
+local MonkeyDebris = Jungle:WaitForChild("__DEBRIS")
+local MonkeyNetwork = BananaStorage:WaitForChild("Network")
+local OldMonkeyHooks = {}
+local MonkeyFishingGame = Monkey:WaitForChild("PlayerGui"):WaitForChild("_INSTANCES").FishingGame.GameBar
+local CurrentMonkeyFishingModule = require(MonkeyHabitat.__INSTANCE_CONTAINER.Active:WaitForChild("Fishing").ClientModule.FishingGame)
+
+--  functions
+
+for i, v in pairs(CurrentMonkeyFishingModule) do
+    OldMonkeyHooks[i] = v
+end
+
+CurrentMonkeyFishingModule.IsFishInBar = function()
+    return math.random(1, 6) ~= 1
+end
+
+CurrentMonkeyFishingModule.StartGame = function(...)
+    InGame = true
+    return OldMonkeyHooks.StartGame(...)
+end
+
+CurrentMonkeyFishingModule.StopGame = function(...)
+    InGame = false
+    return OldMonkeyHooks.StopGame(...)
+end
+
+local function waitForMonkeyGameState(state)
+    repeat
+        TreeClimbingService.RenderStepped:Wait()
+    until InGame == state
+end
+
+local function getMonkeyRod()
+    return Monkey.Character and Monkey.Character:FindFirstChild("Rod", true)
+end
+
+local function getMonkeyBubbles(anchor)
+    local myBobber = nil
+    local myBubbles = false
+    local closestBobber = math.huge
+
+    for _, v in pairs(ActiveMonkeys.Fishing.Bobbers:GetChildren()) do
+        local distance = (v.Bobber.CFrame.Position - anchor.CFrame.Position).Magnitude
+
+        if distance <= closestBobber then
+            myBobber = v.Bobber
+            closestBobber = distance
+        end
     end
-})
 
--- ... other code ...
+    if myBobber then
+        for _, v in pairs(MonkeyDebris:GetChildren()) do
+            if v.Name == "host" and v:FindFirstChild("Attachment") and (v.Attachment:FindFirstChild("Bubbles") or v.Attachment:FindFirstChild("Rare Bubbles")) and (v.CFrame.Position - myBobber.CFrame.Position).Magnitude <= 1 then
+                myBubbles = true
+                break
+            end
+        end
+    end
 
-OrionLib:Init()
+    return myBubbles
+end
+
+while task.wait(1) do
+    pcall(function()
+        local fishingInstance = MonkeyHabitat.__INSTANCE_CONTAINER.Active:FindFirstChild("Fishing")
+        if fishingInstance and not InGame then
+            MonkeyNetwork.Instancing_FireCustomFromClient:FireServer("Fishing", "RequestCast", Vector3.new(1158 + math.random(-10, 10), 75, -3454 + math.random(-10, 10)))
+
+            local myAnchor = getMonkeyRod():WaitForChild("FishingLine").Attachment0
+            repeat
+                TreeClimbingService.RenderStepped:Wait()
+            until not ActiveMonkeys:FindFirstChild("Fishing") or (myAnchor and getMonkeyBubbles(myAnchor)) or InGame
+
+            if ActiveMonkeys:FindFirstChild("Fishing") then
+                MonkeyNetwork.Instancing_FireCustomFromClient:FireServer("Fishing", "RequestReel")
+                waitForMonkeyGameState(true)
+                waitForMonkeyGameState(false)
+            end
+
+            repeat
+                TreeClimbingService.RenderStepped:Wait()
+            until not ActiveMonkeys:FindFirstChild("Fishing") or (getMonkeyRod() and getMonkeyRod().Parent.Bobber.Transparency <= 0)
+        end
+    end)
+end
