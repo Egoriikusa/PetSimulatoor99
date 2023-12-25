@@ -50,105 +50,85 @@ local TeleportToggle = PetSimSection:AddToggle({
         end
     end
 })
+Tab:AddToggle({
+	Name = "Distige Chest Esp",
+	Default = false,
+	Callback = function(Value)
+		print(Value)
+    
 
-local FishToggle = PetSimSection:AddToggle({
-        Name = "Auto Fish",
-        Default = false,
-        Callback = function(value)
+local chestsn = {
+    "Animated",
+    -- Add other chest names here
+}
 
-local Chimpanzees = game:GetService("Players")
-local Jungle = game:GetService("Workspace")
-local TreeClimbingService = game:GetService("RunService")
-local BananaStorage = game:GetService("ReplicatedStorage")
-
--- monkey type shit
-
-local InGame = false
-local Monkey = Chimpanzees.LocalPlayer
-local MonkeyHabitat = Jungle:WaitForChild("__THINGS")
-local ActiveMonkeys = MonkeyHabitat:WaitForChild("__INSTANCE_CONTAINER"):WaitForChild("Active")
-local MonkeyDebris = Jungle:WaitForChild("__DEBRIS")
-local MonkeyNetwork = BananaStorage:WaitForChild("Network")
-local OldMonkeyHooks = {}
-local MonkeyFishingGame = Monkey:WaitForChild("PlayerGui"):WaitForChild("_INSTANCES").FishingGame.GameBar
-local CurrentMonkeyFishingModule = require(MonkeyHabitat.__INSTANCE_CONTAINER.Active:WaitForChild("Fishing").ClientModule.FishingGame)
-
---  functions
-
-for i, v in pairs(CurrentMonkeyFishingModule) do
-    OldMonkeyHooks[i] = v
-end
-
-CurrentMonkeyFishingModule.IsFishInBar = function()
-    return math.random(1, 6) ~= 1
-end
-
-CurrentMonkeyFishingModule.StartGame = function(...)
-    InGame = true
-    return OldMonkeyHooks.StartGame(...)
-end
-
-CurrentMonkeyFishingModule.StopGame = function(...)
-    InGame = false
-    return OldMonkeyHooks.StopGame(...)
-end
-
-local function waitForMonkeyGameState(state)
-    repeat
-        TreeClimbingService.RenderStepped:Wait()
-    until InGame == state
-end
-
-local function getMonkeyRod()
-    return Monkey.Character and Monkey.Character:FindFirstChild("Rod", true)
-end
-
-local function getMonkeyBubbles(anchor)
-    local myBobber = nil
-    local myBubbles = false
-    local closestBobber = math.huge
-
-    for _, v in pairs(ActiveMonkeys.Fishing.Bobbers:GetChildren()) do
-        local distance = (v.Bobber.CFrame.Position - anchor.CFrame.Position).Magnitude
-
-        if distance <= closestBobber then
-            myBobber = v.Bobber
-            closestBobber = distance
+local function contains(table, val)
+    for i = 1, #table do
+        if table[i] == val then
+            return true
         end
     end
+    return false
+end
 
-    if myBobber then
-        for _, v in pairs(MonkeyDebris:GetChildren()) do
-            if v.Name == "host" and v:FindFirstChild("Attachment") and (v.Attachment:FindFirstChild("Bubbles") or v.Attachment:FindFirstChild("Rare Bubbles")) and (v.CFrame.Position - myBobber.CFrame.Position).Magnitude <= 1 then
-                myBubbles = true
-                break
+while task.wait(0.1) do
+    for __, v in pairs(game.Workspace["__THINGS"].__INSTANCE_CONTAINER.Active.Digsite.Important.ActiveChests:GetChildren()) do
+        if v:FindFirstChild("ESP") then
+            v.ESP:Destroy()
+        end
+
+        if contains(chestsn, v.Name) then
+            local tcolor = Color3.fromRGB(222, 184, 135)
+            if v.Name == "Animated" then
+                tcolor = Color3.fromRGB(135, 206, 250)
             end
+
+            local esp = Instance.new("BillboardGui", v)
+            esp.Name = "ESP"
+            esp.Size = UDim2.new(0, 75, 0, 75) -- Smaller ESP size
+            esp.AlwaysOnTop = true
+            esp.MaxDistance = 100
+
+            local frame = Instance.new("Frame", esp)
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundTransparency = 0.3
+            frame.BorderSizePixel = 2
+            frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+            frame.BackgroundColor3 = tcolor
+            frame.ZIndex = 10
+
+            local textLabel = Instance.new("TextLabel", frame)
+            textLabel.Size = UDim2.new(1, 0, 0.2, 0) -- Adjusted text size
+            textLabel.Position = UDim2.new(0, 0, 0.8, 0) -- Adjusted text position
+            textLabel.Text = "Chest"
+            textLabel.TextScaled = true
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = tcolor
+            textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            textLabel.TextStrokeTransparency = 0.5
+
+            local detailLabel = Instance.new("TextLabel", frame)
+            detailLabel.Size = UDim2.new(1, 0, 0.2, 0)
+            detailLabel.Position = UDim2.new(0, 0, 0.6, 0) -- Adjusted detail text position
+            detailLabel.Text = "Details here"
+            detailLabel.TextScaled = true
+            detailLabel.BackgroundTransparency = 1
+            detailLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text color
+            detailLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            detailLabel.TextStrokeTransparency = 0.5
+
+            local outline = Instance.new("ImageLabel", esp)
+            outline.Image = "rbxassetid://554054954"
+            outline.Size = UDim2.new(1.2, 0, 1.2, 0)
+            outline.Position = UDim2.new(-0.1, 0, -0.1, 0)
+            outline.ZIndex = 5
+            outline.ImageTransparency = 0.8
+            outline.ImageColor3 = tcolor
+            outline.ScaleType = Enum.ScaleType.Slice
+            outline.SliceCenter = Rect.new(100, 100, 100, 100)
         end
     end
-
-    return myBubbles
 end
-
-while task.wait(1) do
-    pcall(function()
-        local fishingInstance = MonkeyHabitat.__INSTANCE_CONTAINER.Active:FindFirstChild("Fishing")
-        if fishingInstance and not InGame then
-            MonkeyNetwork.Instancing_FireCustomFromClient:FireServer("Fishing", "RequestCast", Vector3.new(1158 + math.random(-10, 10), 75, -3454 + math.random(-10, 10)))
-
-            local myAnchor = getMonkeyRod():WaitForChild("FishingLine").Attachment0
-            repeat
-                TreeClimbingService.RenderStepped:Wait()
-            until not ActiveMonkeys:FindFirstChild("Fishing") or (myAnchor and getMonkeyBubbles(myAnchor)) or InGame
-
-            if ActiveMonkeys:FindFirstChild("Fishing") then
-                MonkeyNetwork.Instancing_FireCustomFromClient:FireServer("Fishing", "RequestReel")
-                waitForMonkeyGameState(true)
-                waitForMonkeyGameState(false)
-            end
-
-            repeat
-                TreeClimbingService.RenderStepped:Wait()
-            until not ActiveMonkeys:FindFirstChild("Fishing") or (getMonkeyRod() and getMonkeyRod().Parent.Bobber.Transparency <= 0)
-        end
-    end)
-end
+	end    
+})
+OrionLib:Init()
